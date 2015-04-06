@@ -6,16 +6,15 @@ import (
 	"os"
 	"bufio"
 	"fmt"
-	"log"
 	"os/exec"
-	"strconv"
+	"log"
 )
 
 func digraph(root *Node, a active, o io.Writer) {
 	fmt.Fprintln(o, "digraph G {")
 	root.graphChildren(o)
 	root.graphSuffixes(o)
-	fmt.Fprintf(o, "active -> %s [label=\"%s\"]", nodeName(a.n), string(a.source[a.first:a.last]))
+	fmt.Fprintf(o, "active -> %s [label=\"%s\"]", a.n.name, string(a.source[a.first:a.last]))
 	fmt.Fprintln(o, "}")
 }
 
@@ -45,9 +44,8 @@ func png(root *Node, a active, filename string)error {
 }
 
 func (n *Node)graphChildren(o io.Writer) {
-	name := nodeName(n)
 	for _, child := range n.Child {
-		fmt.Fprintf(o, "%s -> %s [ label=\"%s\"];\n", name, nodeName(child), string(child.Edge))
+		fmt.Fprintf(o, "%s -> %s [ label=\"%s\"];\n", n.name, child.name, string(child.Edge))
 	}
 	for _, child := range n.Child {
 		child.graphChildren(o)
@@ -56,38 +54,15 @@ func (n *Node)graphChildren(o io.Writer) {
 
 func (n *Node)graphSuffixes(o io.Writer) {
 	if n.suffix != nil {
-		fmt.Fprintf(o, "%s -> %s [ style=dotted];\n", nodeName(n), nodeName(n.suffix))
+		fmt.Fprintf(o, "%s -> %s [ style=dotted];\n", n.name, n.suffix.name)
 	}
 		for _, child := range n.Child {
 		child.graphSuffixes(o)
 	}
 }
 
-var (
-	nodeNames = make(map[*Node]string)
-	lastNodeName int
-)
-
-func nodeName(n *Node)string {
-	if name, ok := nodeNames[n]; ok {
-		return name
-	}
-	name := strconv.Itoa(lastNodeName)
-	lastNodeName++
-	nodeNames[n] = name
-	return name
-}
-
-func diNode(edge string, child... *Node)*Node{
-	n := &Node{make(map[byte]*Node), []byte(edge), nil}
-	for _, c := range child {
-		n.Child[c.Edge[0]] = c
-	}
-	return n
-}
-
 func BuildAndGraph(s []byte) {
-	root := newNode(nil)
+	root := newNode(nil,nil)
 	a := active{n:root, source:s}
 	if err := png(root, a, "orig.png"); err != nil {
 		log.Fatal(err)

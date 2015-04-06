@@ -3,33 +3,42 @@
 
 package suffixtree
 
-import "log"
+import (
+	"strconv"
+)
 
 type Node struct {
-	Child map[byte]*Node
-	Edge []byte
+	Child  map[byte]*Node
+	Edge   []byte
 	suffix *Node
+	name string
 }
-func newNode(edge []byte) *Node { return &Node{make(map[byte]*Node), edge, nil}}
+
+var nodeNum int
+
+func newNode(edge []byte, child map[byte]*Node) *Node {
+	name := strconv.Itoa(nodeNum)
+	nodeNum++
+	if child == nil {
+		child = make(map[byte]*Node)
+	}
+	return &Node{Child:child, Edge:edge, suffix:nil, name:name}
+}
 
 type active struct {
-	n *Node
-	source []byte
-	first, last int // index into source string
+	n           *Node
+	source      []byte
+	first, last int 
 }
-func (a active) explicit() bool { return a.first >= a.last}
-func (a active) nextByte() byte {return a.n.Child[a.source[a.first]].Edge[a.last - a.first]}
+
+func (a active) explicit() bool { return a.first >= a.last }
+func (a active) nextByte() byte {
+	return a.n.Child[a.source[a.first]].Edge[a.last-a.first]
+}
 func (a *active) canonize() {
-	log.Printf("canonize(%v)", *a)
-	if a.explicit() {
-		return
-	}
-	for {
+	for !a.explicit(){
 		c := a.source[a.first]
 		child := a.n.Child[c]
-		if child == nil {
-			log.Fatalf("expected child of %v: %q (%v), %d", *a.n, string(a.source), c, a.first)
-		}
 		if len(child.Edge) > (a.last - a.first) {
 			break
 		}
@@ -38,15 +47,21 @@ func (a *active) canonize() {
 	}
 }
 
+func (a *active) split() *Node{
+	child := a.n.Child[a.source[a.first]]
+	child.split(a.last - a.first)
+	return child
+}
+
 func (n *Node) split(pos int) {
-	child := &Node{n.Child, n.Edge[pos:], nil}
-	n.Child = map[byte]*Node {child.Edge[0]:child}
+	child := newNode(n.Edge[pos:], n.Child)
+	n.Child = map[byte]*Node{child.Edge[0]: child}
 	n.Edge = n.Edge[:pos]
 }
 
-func New(s []byte)*Node {
-	root := newNode(nil)
-	a := active{n:root, source:s}	
+func New(s []byte) *Node {
+	root := newNode(nil,nil)
+	a := active{n: root, source: s}
 	for pos := range s {
 		a.add(s[pos:], root)
 	}
@@ -54,12 +69,11 @@ func New(s []byte)*Node {
 }
 
 func (a *active) add(suffix []byte, root *Node) {
-	log.Println("adding suffix", string(suffix))
-    var parent, lastParent *Node
+	var parent, lastParent *Node
 	c := suffix[0]
-    for  {
-        parent = a.n
-        if a.explicit() {
+	for {
+		parent = a.n
+		if a.explicit() {
 			if a.n.Child[c] != nil {
 				break
 			}
@@ -67,27 +81,26 @@ func (a *active) add(suffix []byte, root *Node) {
 			if a.nextByte() == c {
 				break
 			}
-			a.n.split(a.last - a.first)
-        }
-		log.Printf("adding child %s(%v) to %v", string(c), c, parent)
-		parent.Child[c] = newNode(suffix)
-        if  lastParent != nil {
+			parent = a.split()
+		}
+		parent.Child[c] = newNode(suffix,nil)
+		if lastParent != nil {
 			lastParent.suffix = parent
 		}
-        lastParent = parent
+		lastParent = parent
 
 		// move to the next smaller suffix
-        if ( a.n == root) {
+		if a.n == root {
 			a.first++
 		} else {
-            a.n = a.n.suffix
+			a.n = a.n.suffix
 		}
-        a.canonize()
-    }
-
-    if ( lastParent != nil ) {
-        lastParent.suffix = parent
+		a.canonize()
 	}
-    a.last++  // Now the endpoint is the next active point
-    a.canonize()
+
+	if lastParent != nil {
+		lastParent.suffix = parent
+	}
+	a.last++ // Now the endpoint is the next active point
+	a.canonize()
 }
