@@ -1,5 +1,9 @@
 package suffixtree
 
+// dot.go and dot_test.go create (if dot from graphviz.org is in $PATH)
+// graphs showing the suffixtree (including suffix links and active point)
+// after adding each suffix.
+
 import (
 	"io"
 	"io/ioutil"
@@ -61,7 +65,7 @@ func (n *Node)graphSuffixes(o io.Writer) {
 	}
 }
 
-func BuildAndGraph(s []byte) {
+func buildAndGraph(s []byte) {
 	root := newNode(nil,nil)
 	a := active{n:root, source:s}
 	if err := png(root, a, "orig.png"); err != nil {
