@@ -7,6 +7,8 @@ import (
 	"strconv"
 )
 
+// A Node has some children (mapped by the first byte of the edge to that child),
+// and an Edge (all the bytes for the edge to this Node from its parent).
 type Node struct {
 	Child  map[byte]*Node
 	Edge   []byte
@@ -59,6 +61,9 @@ func (n *Node) split(pos int) {
 	n.Edge = n.Edge[:pos]
 }
 
+// New returns the root of a suffix tree for a string.
+// It is the caller's responsibility to make sure the last byte
+// of the string is unique (otherwise the suffix tree will still have implicit nodes).
 func New(s []byte) *Node {
 	root := newNode(nil,nil)
 	a := active{n: root, source: s}
