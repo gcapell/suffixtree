@@ -1,6 +1,5 @@
-// Ukkonen's algorithm to form suffixtree in linear time.
+// suffixtree implements Ukkonen's algorithm to form a suffixtree in linear time.
 // Based mostly on http://marknelson.us/1996/08/01/suffix-trees/
-
 package suffixtree
 
 import (
